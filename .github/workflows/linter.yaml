@@ -9,7 +9,9 @@ on:
 jobs:
   terraform-fmt:
     runs-on: ubuntu-latest
-    working-directory: ./bootstrap
+    defaults:
+      run:
+        working-directory: ./bootstrap
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
@@ -20,7 +22,9 @@ jobs:
 
   trivy-config:
     runs-on: ubuntu-latest
-    working-directory: ./bootstrap
+    defaults:
+      run:
+        working-directory: ./bootstrap
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: aquasecurity/setup-trivy@9ea583eb67910444b1f64abf338bd2e105a0a93d # v0.2.3
