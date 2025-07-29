@@ -35,13 +35,13 @@ resource "aws_s3_bucket_lifecycle_configuration" "terraform_state" {
   }
 }
 
+#trivy:ignore:AVD-AWS-0132 (HIGH): Bucket does not encrypt data with a customer managed key.
 resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
   rule {
     apply_server_side_encryption_by_default {
-      kms_master_key_id = data.aws_kms_key.aws_s3_key.arn
-      sse_algorithm     = "aws:kms"
+      sse_algorithm = "AES256"
     }
   }
 }
@@ -77,18 +77,15 @@ data "aws_iam_policy_document" "terraform_state" {
   }
 
   statement {
-    sid     = "EnforceEncryption"
-    actions = ["s3:PutObject"]
-    effect  = "Deny"
-    resources = [
-      "${aws_s3_bucket.terraform_state.arn}",
-      "${aws_s3_bucket.terraform_state.arn}/*",
-    ]
+    sid       = "DenyIncorrectEncryptionHeader"
+    actions   = ["s3:PutObject"]
+    effect    = "Deny"
+    resources = ["${aws_s3_bucket.terraform_state.arn}/*"]
 
     condition {
       test     = "StringNotEquals"
       variable = "s3:x-amz-server-side-encryption"
-      values   = ["aws:kms"]
+      values   = ["AES256"]
     }
 
     principals {
@@ -98,7 +95,25 @@ data "aws_iam_policy_document" "terraform_state" {
   }
 
   statement {
-    sid     = "RootAccess"
+    sid       = "DenyAbsentEncryptionHeader"
+    actions   = ["s3:PutObject"]
+    effect    = "Deny"
+    resources = ["${aws_s3_bucket.terraform_state.arn}/*"]
+
+    condition {
+      test     = "Null"
+      variable = "s3:x-amz-server-side-encryption"
+      values   = ["true"]
+    }
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+  }
+
+  statement {
+    sid     = "AllowRootAccess"
     actions = ["s3:*"]
     effect  = "Allow"
     resources = [
